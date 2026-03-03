@@ -220,7 +220,14 @@ async function renderRecordingPhase(container, task, prompt, sceneImageUrl, scen
       // If enumeration fails, fall back to default audio: true
     }
     const stream = await navigator.mediaDevices.getUserMedia(audioConstraints);
-    mediaRecorder = new MediaRecorder(stream);
+    // Pick a MIME type that works across browsers (Safari doesn't support webm)
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus'
+      : MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm'
+      : MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4'
+      : MediaRecorder.isTypeSupported('audio/aac') ? 'audio/aac'
+      : '';   // let browser pick default
+    const recorderOptions = mimeType ? { mimeType } : {};
+    mediaRecorder = new MediaRecorder(stream, recorderOptions);
     audioChunks = [];
     mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.push(e.data); };
     mediaRecorder.start();
@@ -244,7 +251,8 @@ async function renderRecordingPhase(container, task, prompt, sceneImageUrl, scen
       mediaRecorder.stop();
     }
     mediaRecorder.onstop = () => {
-      audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      const actualMime = mediaRecorder.mimeType || 'audio/webm';
+      audioBlob = new Blob(audioChunks, { type: actualMime });
       // Stop all tracks
       mediaRecorder.stream.getTracks().forEach(t => t.stop());
       processResponse(container, task, prompt, sceneImageUrl, sceneDescription, audioBlob);

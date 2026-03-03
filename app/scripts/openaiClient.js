@@ -139,8 +139,13 @@ export async function transcribeAudio(audioBlob) {
     const apiKey = getApiKey();
     if (!apiKey) throw new Error('OpenAI API key is not configured.');
 
+    // Determine file extension from blob MIME type (Safari uses mp4, Chrome uses webm)
+    const ext = audioBlob.type.includes('mp4') ? 'mp4'
+      : audioBlob.type.includes('aac') ? 'aac'
+      : audioBlob.type.includes('wav') ? 'wav'
+      : 'webm';
     const formData = new FormData();
-    formData.append('file', audioBlob, 'recording.webm');
+    formData.append('file', audioBlob, 'recording.' + ext);
     formData.append('model', 'whisper-1');
     formData.append('language', 'en');
 

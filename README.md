@@ -1,6 +1,8 @@
 # CELPIP Exam Coach
 
-An AI-powered practice tool for the **CELPIP-General** English exam. Generate fresh questions, practise under timed exam conditions, and receive detailed scoring with actionable feedback — all running locally on your Mac. Built with **Vite** and the **OpenAI API** (`gpt-4o-mini` by default).
+An AI-powered practice tool for the **CELPIP-General** English exam. Generate fresh questions, practise under timed exam conditions, and receive detailed scoring with actionable feedback. Built with **Vite** and the **OpenAI API** (`gpt-4o-mini` by default, switchable to `gpt-4o` in Settings).
+
+**Live app:** [https://jow30.github.io/CELPIP-training/](https://jow30.github.io/CELPIP-training/)
 
 ---
 
@@ -8,14 +10,14 @@ An AI-powered practice tool for the **CELPIP-General** English exam. Generate fr
 
 | Feature | Description |
 |---------|-------------|
-| **AI-generated questions** | Every session produces unique questions via the OpenAI API — no repeated content |
+| **AI-generated questions** | Every session produces unique content via the OpenAI API — no repeated material |
 | **All 4 sections** | Listening (6 parts, TTS audio), Reading (4 parts), Writing (2 tasks), Speaking (8 tasks) |
-| **Independent practice** | Practise any section or individual task type on its own |
 | **Timed sessions** | Official CELPIP time limits enforced per task |
-| **Writing evaluation** | Rubric-based score (CLB 3–12) + 3–5 concrete improvement suggestions |
+| **Writing evaluation** | Rubric-based score (CLB 3–12), 3–5 concrete suggestions, and a model answer (150–200 words with paragraphs) |
 | **Speaking evaluation** | Whisper-powered transcript + rubric-based score + 3–5 suggestions |
-| **AI scene images** | DALL-E generates a unique scene picture for Speaking Task 3 every time |
-| **Progress tracking** | Session history with scores per task type to track improvement |
+| **AI scene images** | DALL-E generates unique scene images for Speaking Tasks 3, 4, and 8 (100+ scene categories) |
+| **Continue to next task** | Seamless progression through tasks in every section |
+| **Progress tracking** | Session history with scores per task type |
 
 ---
 
@@ -35,88 +37,97 @@ An AI-powered practice tool for the **CELPIP-General** English exam. Generate fr
 
 ---
 
-## Installation
+## Installation & Local Usage
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/<your-username>/CELPIP-training.git
+git clone git@github.com:jow30/CELPIP-training.git
 cd CELPIP-training
 
 # 2. Install dependencies
 npm install
 
-# 3. Set up your OpenAI API key
-cp .env.example .env
-```
-
-Open the `.env` file and add your key:
-
-```
-OPENAI_API_KEY=sk-your-key-here
-```
-
-> You can also enter the key later through the **Settings** panel in the app.
-
----
-
-## Usage
-
-### Start the app
-
-```bash
+# 3. Start the dev server
 npm run dev
 ```
 
-The app opens automatically at **http://localhost:5173**.
-
-### Practise a section
-
-1. On the home screen, choose a section: **Listening**, **Reading**, **Writing**, or **Speaking**.
-2. Select a specific task type (e.g., "Email Writing") or practise the full section.
-3. Complete the timed exercise.
-4. Review your evaluation: score, strengths, improvement suggestions, and a model answer.
-
-> **Tip:** Use the **Quick Start** buttons on the home screen for instant access to Writing and Speaking practice.
-
-### Speaking practice
-
-1. Choose a Speaking task (e.g., Task 3 — Describing a Scene).
-2. An AI-generated scene image appears on screen (for Task 3).
-3. Use the preparation time to plan your response.
-4. Record your answer when the timer starts.
-5. After submission, review your **transcript**, score, and 3–5 suggestions for improvement.
-
-### Writing practice
-
-1. Choose a Writing task (Email or Survey Response).
-2. Read the AI-generated prompt.
-3. Write your response (a word counter tracks your progress).
-4. After submission, review your score, 3–5 concrete suggestions quoting your own text, and a model answer.
-
----
-
-## Available Commands
-
-| Command | What it does |
-|---------|-------------|
-| `npm run dev` | Start the development server with hot reload |
-| `npm test` | Run all unit tests |
-| `npm run build` | Create a production bundle (optional) |
+The app opens automatically at **http://localhost:5173**. Enter your OpenAI API key in the **Settings** panel (gear icon) to enable AI features.
 
 ---
 
 ## API Key
 
-You can provide your OpenAI API key in two ways:
-
 | Method | Details |
 |--------|---------|
-| **`.env` file** | Set `OPENAI_API_KEY=sk-...` (recommended) |
 | **In-app Settings** | Enter the key in the Settings panel; saved to `localStorage` |
+| **`.env` file** | Set `VITE_OPENAI_API_KEY=sk-...` (loaded at build time) |
 
 The in-app key takes priority. If no key is configured, the app uses a local fallback question bank (limited content, no AI evaluation).
 
 > ⚠️ Your API key is stored locally and never sent anywhere except the OpenAI API.
+
+---
+
+## Maintainer Guide
+
+### Project Structure
+
+```
+CELPIP-training/
+├── index.html               # Entry point
+├── vite.config.js           # Vite config (includes GitHub Pages base path)
+├── package.json             # Dependencies and scripts
+├── .env.example             # API key template
+├── AGENTS.md                # AI agent guidance for development
+├── app/
+│   ├── scripts/
+│   │   ├── main.js              # Router, navigation, home page
+│   │   ├── listeningSection.js  # Listening: 6 parts, TTS audio
+│   │   ├── readingSection.js    # Reading: 4 parts, passages + MCQ
+│   │   ├── writingSection.js    # Writing: 2 tasks, evaluation + model answer
+│   │   ├── speakingSection.js   # Speaking: 8 tasks, Whisper + DALL-E images
+│   │   └── openaiClient.js      # OpenAI API wrapper (chat, TTS, image, whisper)
+│   └── styles/
+│       └── index.css            # All styles (design tokens, components, layout)
+└── dist/                        # Production build output (deployed to GitHub Pages)
+```
+
+### Key Architecture Notes
+
+- **Single-page app** — all routing handled by `main.js` via hash-based navigation.
+- **No backend** — everything runs client-side. API calls go directly to OpenAI from the browser.
+- **Scene images for Speaking:**
+  - Tasks 3/4 — image generated first from 100 random scene seeds, prompt is generic ("describe what you see").
+  - Task 8 — prompt generated first from 25 unusual scene seeds, image generated to match the prompt (single GPT call produces both).
+  - Task 3 → 4 shares the same image.
+- **"Continue → Next Task" buttons** — all 4 sections have a continue button on the results page (hidden on the last task/part of each section).
+
+### Deploying to GitHub Pages
+
+After making code changes, run these 3 steps:
+
+```bash
+# 1. Build the production bundle
+npm run build
+
+# 2. Deploy dist/ folder to the gh-pages branch
+npx gh-pages -d dist
+
+# 3. Push source code to main branch
+git add -A && git commit -m "describe your changes" && git push
+```
+
+The app will be live at **https://jow30.github.io/CELPIP-training/** within 1–2 minutes.
+
+> **Important:** The `base: '/CELPIP-training/'` setting in `vite.config.js` is required for GitHub Pages. If you rename the repo, update this value to match.
+
+### Useful Commands
+
+| Command | What it does |
+|---------|-------------|
+| `npm run dev` | Start dev server with hot reload |
+| `npm run build` | Create production bundle in `dist/` |
+| `npx gh-pages -d dist` | Deploy `dist/` to GitHub Pages |
 
 ---
 
@@ -128,30 +139,8 @@ The in-app key takes priority. If no key is configured, the app uses a local fal
 | `npm install` fails | Delete `node_modules/` and `package-lock.json`, then run `npm install` again |
 | Microphone not working | Go to **System Preferences → Privacy & Security → Microphone** and allow your browser |
 | API errors (401) | Check that your API key is correct and has available credits |
-| Port 3000 in use | Use a different port: `PORT=3001 npm run dev` |
-
----
-
-## Project Structure
-
-```
-CELPIP-training/
-├── app/                  # Web application (HTML, CSS, JS)
-│   ├── index.html        # Entry point
-│   ├── styles/           # Stylesheets
-│   ├── scripts/          # Core modules (question gen, evaluation, audio, etc.)
-│   └── components/       # Reusable UI components
-├── data/
-│   ├── question-bank/    # Fallback questions (offline mode)
-│   ├── scene-gallery/    # Fallback scene images (offline mode)
-│   ├── prompts/          # OpenAI system prompts per section
-│   └── rubrics/          # Scoring rubrics (JSON)
-├── tests/                # Automated tests
-├── docs/                 # Additional documentation
-├── .env.example          # API key template
-├── package.json          # Dependencies and scripts
-└── AGENTS.md             # Agent guidance (for AI-assisted development)
-```
+| Port 5173 in use | Change port in `vite.config.js` or use `npx vite --port 5174` |
+| GitHub Pages shows 404 | Ensure `base` in `vite.config.js` matches your repo name, then rebuild and redeploy |
 
 ---
 

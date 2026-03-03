@@ -195,9 +195,31 @@ async function renderRecordingPhase(container, task, prompt, sceneImageUrl, scen
     </main>
   `;
 
-  // Start recording
+  // Start recording — prefer built-in/default mic over iPhone Continuity
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    // Enumerate devices to find the default or built-in microphone
+    let audioConstraints = { audio: true };
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const audioInputs = devices.filter(d => d.kind === 'audioinput');
+      // Prefer "Built-in" or "MacBook" or "default" mic, skip iPhone/iPad
+      const builtIn = audioInputs.find(d =>
+        /built.in|macbook|default|internal/i.test(d.label) &&
+        !/iphone|ipad/i.test(d.label)
+      );
+      if (builtIn) {
+        audioConstraints = { audio: { deviceId: { exact: builtIn.deviceId } } };
+      } else if (audioInputs.length > 0) {
+        // If no built-in found by name, pick the first non-iPhone device
+        const nonPhone = audioInputs.find(d => !/iphone|ipad/i.test(d.label));
+        if (nonPhone) {
+          audioConstraints = { audio: { deviceId: { exact: nonPhone.deviceId } } };
+        }
+      }
+    } catch (enumErr) {
+      // If enumeration fails, fall back to default audio: true
+    }
+    const stream = await navigator.mediaDevices.getUserMedia(audioConstraints);
     mediaRecorder = new MediaRecorder(stream);
     audioChunks = [];
     mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.push(e.data); };
